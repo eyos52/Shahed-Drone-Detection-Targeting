@@ -7,7 +7,7 @@ def parse_args():
     parser.add_argument(
         "--model", 
         type=str, 
-        default="/users/apgoel/runs/shahed_merged_v8s-5/weights/best.pt",
+        default="/users/apgoel/runs/shahed_ft_real/weights/best.pt",
         help="Path to trained .pt weights"
     )
     parser.add_argument(
@@ -19,7 +19,7 @@ def parse_args():
     parser.add_argument(
         "--conf", 
         type=float, 
-        default=0.01, 
+        default=0.20, 
         help="Confidence threshold"
     )
     parser.add_argument(
