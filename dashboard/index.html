@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shahed Video Review</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside class="sidebar" aria-label="Project navigation">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div>
+        <strong>Shahed Video Review</strong>
+        <span>Detection QA workspace</span>
+      </div>
+    </div>
+
+    <nav class="nav" aria-label="Dashboard sections">
+      <a class="active" href="#review">Review</a>
+      <a href="#detections">Detections</a>
+      <a href="#export">Export</a>
+    </nav>
+
+    <div class="run-card">
+      <span class="label">Dashboard status</span>
+      <strong id="sidebarStatus">Waiting for files</strong>
+      <span class="muted">Load a video and detections JSON</span>
+    </div>
+  </aside>
+
+  <main class="workspace">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Evaluation workspace</p>
+        <h1>Video detection review</h1>
+      </div>
+      <div class="actions">
+        <label class="file-control">
+          <input id="videoInput" type="file" accept="video/*">
+          Open video
+        </label>
+        <label class="file-control">
+          <input id="detectionsInput" type="file" accept="application/json,.json">
+          Open detections
+        </label>
+        <button id="exportJson" type="button">Save review</button>
+      </div>
+    </header>
+
+    <section class="summary-strip" aria-label="Current run summary">
+      <div>
+        <span>Clip</span>
+        <strong id="summaryClip">No video loaded</strong>
+      </div>
+      <div>
+        <span>Detections</span>
+        <strong id="summaryDetections">No detections loaded</strong>
+      </div>
+      <div>
+        <span>Model</span>
+        <strong id="summaryModel">No model metadata</strong>
+      </div>
+      <div>
+        <span>Status</span>
+        <strong id="summaryStatus" class="status idle">Waiting</strong>
+      </div>
+    </section>
+
+    <section id="review" class="review-layout">
+      <div class="video-panel">
+        <div class="video-shell">
+          <video id="reviewVideo" controls playsinline></video>
+          <canvas id="overlayCanvas" aria-hidden="true"></canvas>
+          <div id="emptyVideoState" class="empty-video-state">
+            <strong>No video selected</strong>
+            <span>Open a local video to begin review.</span>
+          </div>
+        </div>
+        <div class="transport">
+          <button id="prevFinding" type="button" title="Previous finding">Previous</button>
+          <button id="nextFinding" type="button" title="Next finding">Next</button>
+          <div class="timeline" id="timeline" aria-label="Detection timeline"></div>
+        </div>
+      </div>
+
+      <aside class="inspector" aria-label="Current detection details">
+        <div>
+          <p class="eyebrow">Selected detection</p>
+          <h2 id="findingTitle">No detection selected</h2>
+        </div>
+        <dl class="detail-grid">
+          <div>
+            <dt>Confidence</dt>
+            <dd id="confidenceValue">0.91</dd>
+          </div>
+          <div>
+            <dt>Frame time</dt>
+            <dd id="timeValue">00:04.2</dd>
+          </div>
+          <div>
+            <dt>Lighting</dt>
+            <dd id="lightingValue">night / IR</dd>
+          </div>
+          <div>
+            <dt>Size</dt>
+            <dd id="sizeValue">28 px</dd>
+          </div>
+        </dl>
+
+        <div class="decision-row" role="group" aria-label="Review decision">
+          <button class="decision active" data-decision="confirm" type="button">Correct</button>
+          <button class="decision" data-decision="ignore" type="button">Ignore</button>
+          <button class="decision" data-decision="miss" type="button">Miss</button>
+        </div>
+
+        <label class="note-field">
+          Review note
+          <textarea id="reviewNote" rows="5" placeholder="Add notes about glow, occlusion, target size, or label uncertainty."></textarea>
+        </label>
+      </aside>
+    </section>
+
+    <section id="detections" class="content-band">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Loaded detections</p>
+          <h2>Detection list</h2>
+        </div>
+        <button id="exportCsv" type="button">Download detections CSV</button>
+      </div>
+      <div class="clip-table" role="table" aria-label="Detection table">
+        <div class="table-row table-head" role="row">
+          <span role="columnheader">Time / frame</span>
+          <span role="columnheader">Label</span>
+          <span role="columnheader">Confidence</span>
+          <span role="columnheader">Box</span>
+        </div>
+        <div id="detectionRows" class="table-body-empty">No detections loaded.</div>
+      </div>
+    </section>
+
+    <section id="export" class="content-band split-band">
+      <div>
+        <p class="eyebrow">Review output</p>
+        <h2>Saved review contents</h2>
+        <p class="plain-copy">The exported review includes the loaded file metadata, detections, the selected decision, and your note. It does not invent evaluation metrics.</p>
+      </div>
+      <div class="qa-panel">
+        <p class="eyebrow">Expected workflow</p>
+        <ul>
+          <li>Run inference with `scripts/run_inference.py`.</li>
+          <li>Open the same video in the dashboard.</li>
+          <li>Open the generated detections JSON.</li>
+          <li>Review detections and save the review JSON.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
