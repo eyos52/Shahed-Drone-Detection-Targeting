@@ -1,5 +1,7 @@
 import argparse
+import subprocess
 from pathlib import Path
+import imageio_ffmpeg
 from ultralytics import YOLO
 
 def parse_args():
@@ -7,7 +9,7 @@ def parse_args():
     parser.add_argument(
         "--model", 
         type=str, 
-        default="/users/apgoel/runs/shahed_ft_real/weights/best.pt",
+        default="/users/apgoel/runs/shahed_ft_real_v3/weights/best.pt",
         help="Path to trained .pt weights"
     )
     parser.add_argument(
@@ -19,7 +21,7 @@ def parse_args():
     parser.add_argument(
         "--conf", 
         type=float, 
-        default=0.20, 
+        default=0.30, 
         help="Confidence threshold"
     )
     parser.add_argument(
@@ -29,6 +31,20 @@ def parse_args():
         help="Directory to save annotated prediction images"
     )
     return parser.parse_args()
+
+def convert_avi_to_mp4(output_dir):
+    # Ultralytics saves annotated videos as MJPG .avi, which VS Code/browsers can't play
+    ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+    for avi in Path(output_dir).glob("*.avi"):
+        mp4 = avi.with_suffix(".mp4")
+        subprocess.run(
+            [ffmpeg, "-y", "-loglevel", "error", "-i", str(avi),
+             "-c:v", "libx264", "-pix_fmt", "yuv420p",
+             "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2",
+             "-movflags", "+faststart", str(mp4)],
+            check=True,
+        )
+        print(f"Playable video saved to: {mp4}")
 
 def main():
     args = parse_args()
@@ -60,6 +76,7 @@ def main():
             
     print(f"\nFinished: {detected_count}/{len(results)} images had detections.")
     print(f"Annotated outputs saved to: {args.output}")
+    convert_avi_to_mp4(args.output)
 
 if __name__ == "__main__":
     main()
