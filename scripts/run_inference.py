@@ -37,38 +37,37 @@ def box_to_normalized_xywh(xyxy, width, height):
     }
 
 
-def main():
-    args = parse_args()
-
+def run_inference(model_path, video_path, conf=0.25, imgsz=640, save_annotated=False, annotated_dir="outputs/videos"):
     try:
         from ultralytics import YOLO
         import cv2
     except ImportError as exc:
-        raise SystemExit(
+        raise RuntimeError(
             "Missing dependency. Install with `pip install -r requirements-dashboard.txt`."
         ) from exc
 
-    model_path = Path(args.model).expanduser().resolve()
-    video_path = Path(args.video).expanduser().resolve()
-    out_json = Path(args.out_json).expanduser().resolve()
-    out_json.parent.mkdir(parents=True, exist_ok=True)
+    model_path = Path(model_path).expanduser().resolve()
+    video_path = Path(video_path).expanduser().resolve()
 
     if not model_path.exists():
-        raise SystemExit(f"Model not found: {model_path}")
+        raise FileNotFoundError(f"Model not found: {model_path}")
     if not video_path.exists():
-        raise SystemExit(f"Video not found: {video_path}")
+        raise FileNotFoundError(f"Video not found: {video_path}")
 
     capture = cv2.VideoCapture(str(video_path))
     fps = capture.get(cv2.CAP_PROP_FPS) or 0
+    frame_count = int(capture.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+    width_px = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH) or 0)
+    height_px = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0)
     capture.release()
     fps = fps if fps > 0 else None
 
     model = YOLO(str(model_path))
     results = model.predict(
         source=str(video_path),
-        conf=args.conf,
-        imgsz=args.imgsz,
-        save=args.save_annotated,
+        conf=conf,
+        imgsz=imgsz,
+        save=save_annotated,
         stream=True,
         verbose=False,
     )
@@ -76,8 +75,10 @@ def main():
     detections = []
     class_counts = {}
     annotated_save_dir = None
+    frames_processed = 0
 
     for frame_index, result in enumerate(results):
+        frames_processed = frame_index + 1
         names = result.names
         height, width = result.orig_shape
         time_seconds = frame_index / fps if fps else None
@@ -95,37 +96,71 @@ def main():
                 "box": box_to_normalized_xywh(box.xyxy[0], width, height),
             })
 
-        if args.save_annotated:
+        if save_annotated:
             annotated_save_dir = str(result.save_dir)
 
     payload = {
         "video": video_path.name,
         "model": model_path.name,
-        "confidence_threshold": args.conf,
-        "image_size": args.imgsz,
+        "confidence_threshold": conf,
+        "image_size": imgsz,
+        "fps": fps,
+        "frame_count": frame_count,
+        "video_size": {
+            "width": width_px,
+            "height": height_px,
+        },
         "classes": getattr(model, "names", {}),
         "summary": {
-            "frames_processed": frame_index + 1 if "frame_index" in locals() else 0,
+            "frames_processed": frames_processed,
             "detections": len(detections),
             "class_counts": class_counts,
         },
         "detections": detections,
     }
 
-    out_json.write_text(json.dumps(payload, indent=2))
-    print(f"Wrote detections: {out_json}")
-
-    if args.save_annotated and annotated_save_dir:
-        annotated_dir = Path(args.annotated_dir).expanduser().resolve()
+    copied_annotated = None
+    if save_annotated and annotated_save_dir:
+        annotated_dir = Path(annotated_dir).expanduser().resolve()
         annotated_dir.mkdir(parents=True, exist_ok=True)
         candidates = sorted(Path(annotated_save_dir).glob("*"))
         video_outputs = [p for p in candidates if p.suffix.lower() in {".avi", ".mp4", ".mov"}]
         if video_outputs:
-            copied = annotated_dir / video_outputs[0].name
-            shutil.copy(video_outputs[0], copied)
-            print(f"Copied annotated video: {copied}")
+            copied_annotated = annotated_dir / video_outputs[0].name
+            shutil.copy(video_outputs[0], copied_annotated)
+            payload["annotated_video"] = str(copied_annotated)
+
+    return payload, copied_annotated
+
+
+def main():
+    args = parse_args()
+
+    model_path = Path(args.model).expanduser().resolve()
+    video_path = Path(args.video).expanduser().resolve()
+    out_json = Path(args.out_json).expanduser().resolve()
+    out_json.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        payload, copied_annotated = run_inference(
+            model_path=model_path,
+            video_path=video_path,
+            conf=args.conf,
+            imgsz=args.imgsz,
+            save_annotated=args.save_annotated,
+            annotated_dir=args.annotated_dir,
+        )
+    except (FileNotFoundError, RuntimeError) as exc:
+        raise SystemExit(str(exc)) from exc
+
+    out_json.write_text(json.dumps(payload, indent=2))
+    print(f"Wrote detections: {out_json}")
+
+    if args.save_annotated:
+        if copied_annotated:
+            print(f"Copied annotated video: {copied_annotated}")
         else:
-            print(f"Annotated output directory created, but no video file was found: {annotated_save_dir}")
+            print("Annotated output was requested, but no video file was found.")
 
 
 if __name__ == "__main__":
