@@ -1,0 +1,68 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Dashboard: serve locally",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python server.py",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "dashboard-server",
+        "pattern": {
+          "regexp": "^$",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Running on",
+          "endsPattern": "Running on"
+        }
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "Dashboard: run inference",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python scripts/run_inference.py --model models/shahed_best.pt --video \"${input:videoPath}\" --out-json \"outputs/detections/${input:outputName}.json\" --conf ${input:confidence} --save-annotated",
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Dashboard: validate files",
+      "type": "shell",
+      "command": "node --check dashboard/app.js && ${workspaceFolder}/.venv/bin/python -m py_compile server.py scripts/run_inference.py",
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always"
+      },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "videoPath",
+      "type": "promptString",
+      "description": "Absolute path to the video file"
+    },
+    {
+      "id": "outputName",
+      "type": "promptString",
+      "description": "Output JSON filename without .json",
+      "default": "detections"
+    },
+    {
+      "id": "confidence",
+      "type": "promptString",
+      "description": "Confidence threshold",
+      "default": "0.7"
+    }
+  ]
+}

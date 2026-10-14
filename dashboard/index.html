@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shahed Review</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <input id="videoInput" class="visually-hidden" type="file" accept="video/*">
+  <input id="detectionsInput" class="visually-hidden" type="file" accept="application/json,.json">
+
+  <header class="appbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <strong>Shahed Review</strong>
+    </div>
+
+    <nav class="tabs" aria-label="Sections">
+      <a class="active" href="#review" title="Review"><span aria-hidden="true">□</span><span>Review</span></a>
+      <a href="#detections" title="Detections"><span aria-hidden="true">≡</span><span>Detections</span></a>
+      <a href="#export" title="Export"><span aria-hidden="true">↧</span><span>Export</span></a>
+    </nav>
+
+    <div class="toolbar" aria-label="Actions">
+      <label id="openVideoButton" class="button primary" for="videoInput">
+        <span aria-hidden="true">↑</span>
+        <span>Open</span>
+      </label>
+      <button id="runModel" class="primary" type="button" hidden>
+        <span aria-hidden="true">▶</span>
+        <span>Run</span>
+      </button>
+      <label id="openDetectionsButton" class="button secondary" for="detectionsInput">
+        <span aria-hidden="true">◇</span>
+        <span>Detections</span>
+      </label>
+      <button id="exportJson" class="secondary" type="button" hidden>
+        <span aria-hidden="true">✓</span>
+        <span>Save</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <div id="summaryLine" class="summary-line" hidden>
+      <span id="summaryClip">No video loaded</span>
+      <span aria-hidden="true">·</span>
+      <span><strong id="summaryDetections">0</strong> detections</span>
+      <span aria-hidden="true">·</span>
+      <span id="summaryModel">No model</span>
+      <span aria-hidden="true">·</span>
+      <span id="summaryStatus" class="status idle"><span class="status-dot" aria-hidden="true"></span>Waiting</span>
+    </div>
+
+    <section id="review" class="review-layout">
+      <div class="video-panel">
+        <div id="videoDropzone" class="video-shell">
+          <video id="reviewVideo" controls playsinline></video>
+          <canvas id="overlayCanvas" aria-hidden="true"></canvas>
+          <label id="emptyVideoState" class="empty-video-state" for="videoInput">
+            <span aria-hidden="true">↑</span>
+            <strong>Open video</strong>
+            <small>Drop a video here or choose a file.</small>
+          </label>
+        </div>
+        <div class="transport">
+          <button id="prevFinding" class="icon-button" type="button" title="Previous finding (Left arrow)">‹</button>
+          <div class="timeline" id="timeline" aria-label="Detection timeline"></div>
+          <button id="nextFinding" class="icon-button" type="button" title="Next finding (Right arrow)">›</button>
+        </div>
+      </div>
+
+      <aside id="inspectorPanel" class="inspector" aria-label="Current detection details" hidden>
+        <div class="panel-heading">
+          <span>Selected</span>
+          <h2 id="findingTitle">Select a detection.</h2>
+        </div>
+        <dl id="detailGrid" class="detail-grid" hidden>
+          <div>
+            <dt>Confidence</dt>
+            <dd id="confidenceValue"></dd>
+          </div>
+          <div>
+            <dt>Time</dt>
+            <dd id="timeValue"></dd>
+          </div>
+          <div>
+            <dt>FPS</dt>
+            <dd id="fpsValue"></dd>
+          </div>
+          <div>
+            <dt>Size</dt>
+            <dd id="sizeValue"></dd>
+          </div>
+        </dl>
+
+        <div class="decision-row" role="group" aria-label="Review decision">
+          <button class="decision confirm active" data-decision="confirm" type="button">Correct <kbd>C</kbd></button>
+          <button class="decision ignore" data-decision="ignore" type="button">Ignore <kbd>I</kbd></button>
+          <button class="decision miss" data-decision="miss" type="button">Miss <kbd>M</kbd></button>
+        </div>
+
+        <label class="note-field">
+          Notes
+          <textarea id="reviewNote" rows="5" placeholder="Notes..."></textarea>
+        </label>
+      </aside>
+    </section>
+
+    <section id="detections" class="content-band">
+      <div class="section-heading">
+        <h2>Detections</h2>
+        <button id="exportCsv" class="icon-button" type="button" title="Download CSV">↧</button>
+      </div>
+      <div class="clip-table" role="table" aria-label="Detection table">
+        <div class="table-row table-head" role="row">
+          <span role="columnheader">Time</span>
+          <span role="columnheader">Label</span>
+          <span role="columnheader">Conf</span>
+          <span role="columnheader">Box</span>
+        </div>
+        <div id="detectionRows" class="table-body-empty">No detections.</div>
+      </div>
+    </section>
+
+    <section id="export" class="content-band export-band">
+      <h2>Export</h2>
+      <p class="plain-copy">Review JSON includes the loaded file, detections, decision, and notes.</p>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

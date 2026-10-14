@@ -1,0 +1,9 @@
+{
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    ".venv": true,
+    "runs": true
+  },
+  "livePreview.defaultPreviewPath": "/dashboard/index.html"
+}

@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+
+# Local model files and generated outputs are not committed.
+models/
+outputs/
+data/demo/
+runs/
+
+# Local handoff archives.
+*.zip
