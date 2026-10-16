@@ -2,7 +2,10 @@
 """Local backend for the Shahed dashboard."""
 
 import json
+import os
 import re
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -14,12 +17,34 @@ DASHBOARD_DIR = ROOT / "dashboard"
 UPLOAD_DIR = ROOT / "outputs" / "uploads"
 DETECTIONS_DIR = ROOT / "outputs" / "detections"
 VIDEO_OUTPUT_DIR = ROOT / "outputs" / "videos"
-MODEL_PATH = ROOT / "models" / "shahed_best.pt"
+MODEL_PATH = ROOT / "models" / "shahed_ft_real_v4" / "weights" / "best.pt"
 
 sys.path.insert(0, str(ROOT / "scripts"))
 from run_inference import run_inference  # noqa: E402
 
+# Run inference on a compute node via srun instead of on the login node.
+# Override with e.g. SLURM_PARTITION=batch, SLURM_TIME=00:30:00, USE_SLURM=0.
+USE_SLURM = os.environ.get("USE_SLURM", "1") != "0" and shutil.which("srun") is not None
+SLURM_PARTITION = os.environ.get("SLURM_PARTITION", "short")
+SLURM_TIME = os.environ.get("SLURM_TIME", "00:30:00")
+
 app = Flask(__name__, static_folder=str(DASHBOARD_DIR), static_url_path="")
+
+
+def run_inference_on_node(model_path, video_path, conf, imgsz, out_json):
+    """Submit run_inference.py as a blocking srun job and return its payload."""
+    cmd = [
+        "srun", f"--partition={SLURM_PARTITION}", "--gres=gpu:1",
+        "--cpus-per-task=4", "--mem=16G", f"--time={SLURM_TIME}",
+        "--job-name=shahed-infer", "--chdir=" + str(ROOT),
+        sys.executable, str(ROOT / "scripts" / "run_inference.py"),
+        "--model", str(model_path), "--video", str(video_path),
+        "--out-json", str(out_json), "--conf", str(conf), "--imgsz", str(imgsz),
+    ]
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0:
+        raise RuntimeError((proc.stderr or proc.stdout).strip()[-2000:] or "srun failed")
+    return json.loads(Path(out_json).read_text())
 
 
 def slugify(name):
@@ -71,14 +96,18 @@ def infer():
     output_json = DETECTIONS_DIR / f"{output_stem}.json"
 
     try:
-        payload, copied_annotated = run_inference(
-            model_path=MODEL_PATH,
-            video_path=video_path,
-            conf=confidence,
-            imgsz=640,
-            save_annotated=False,
-            annotated_dir=VIDEO_OUTPUT_DIR,
-        )
+        if USE_SLURM:
+            payload = run_inference_on_node(MODEL_PATH, video_path, confidence, 640, output_json)
+            copied_annotated = None
+        else:
+            payload, copied_annotated = run_inference(
+                model_path=MODEL_PATH,
+                video_path=video_path,
+                conf=confidence,
+                imgsz=640,
+                save_annotated=False,
+                annotated_dir=VIDEO_OUTPUT_DIR,
+            )
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
 

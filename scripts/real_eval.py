@@ -3,19 +3,20 @@ import subprocess
 from pathlib import Path
 import imageio_ffmpeg
 from ultralytics import YOLO
+import torch # 👈 CHANGED: Added torch import to sanitize model checkpoints
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Evaluate Shahed-136 YOLO model on real images")
     parser.add_argument(
         "--model", 
         type=str, 
-        default="/users/apgoel/runs/shahed_ft_real_v3/weights/best.pt",
+        default="/users/apgoel/senior_design/runs/smart_v4_yolov8s/weights/best.pt",
         help="Path to trained .pt weights"
     )
     parser.add_argument(
         "--source", 
         type=str, 
-        default="/users/apgoel/data/real_images",
+        default="/users/apgoel/senior_design/data/real_images",
         help="Path to folder of test images"
     )
     parser.add_argument(
@@ -27,7 +28,7 @@ def parse_args():
     parser.add_argument(
         "--output", 
         type=str, 
-        default="/users/apgoel/runs/real_world_eval",
+        default="/users/apgoel/senior_design/runs/real_world_eval",
         help="Directory to save annotated prediction images"
     )
     return parser.parse_args()
@@ -48,6 +49,15 @@ def convert_avi_to_mp4(output_dir):
 
 def main():
     args = parse_args()
+    
+    #CHANGED: Added automatic cleanup of hardcoded training pathways from metadata
+    try:
+        ckpt = torch.load(args.model, map_location="cpu")
+        if isinstance(ckpt, dict) and "train_args" in ckpt:
+            del ckpt["train_args"]
+            torch.save(ckpt, args.model)
+    except Exception as e:
+        print(f"Note: Could not sanitize model path metadata: {e}")
     
     print(f"Loading weights from: {args.model}")
     model = YOLO(args.model)
