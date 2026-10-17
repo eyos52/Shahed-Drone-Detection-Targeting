@@ -1,8 +1,11 @@
 import argparse
 import subprocess
+import tempfile
 from pathlib import Path
+import cv2
 import imageio_ffmpeg
 from ultralytics import YOLO
+from ultralytics.data.utils import IMG_FORMATS, VID_FORMATS
 import torch # 👈 CHANGED: Added torch import to sanitize model checkpoints
 
 def parse_args():
@@ -10,7 +13,7 @@ def parse_args():
     parser.add_argument(
         "--model", 
         type=str, 
-        default="/users/apgoel/senior_design/runs/smart_v4_yolov8s/weights/best.pt",
+        default="/users/apgoel/senior_design/runs/final_v5i_1280_e40/weights/last.pt",
         help="Path to trained .pt weights"
     )
     parser.add_argument(
@@ -28,7 +31,7 @@ def parse_args():
     parser.add_argument(
         "--output", 
         type=str, 
-        default="/users/apgoel/senior_design/runs/real_world_eval",
+        default="/users/apgoel/senior_design/runs/real_world_eval_v5i",
         help="Directory to save annotated prediction images"
     )
     return parser.parse_args()
@@ -47,9 +50,32 @@ def convert_avi_to_mp4(output_dir):
         )
         print(f"Playable video saved to: {mp4}")
 
+def usable_sources(source, tmp):
+    """Folder of links to the files in `source` that OpenCV can actually open. Ultralytics aborts
+    the whole run on one unreadable video (audio-only HLS tracks, half-finished *.temp.mp4
+    downloads), so skip those. It must be a folder: a list of paths is read as in-memory images."""
+    path = Path(source)
+    if not path.is_dir():
+        return source
+    keep, skipped = [], []
+    for f in sorted(path.iterdir()):
+        ext = f.suffix[1:].lower()
+        if ext in VID_FORMATS:
+            cap = cv2.VideoCapture(str(f))
+            ok = cap.isOpened() and cap.read()[0]
+            cap.release()
+            (keep if ok else skipped).append(f)
+        elif ext in IMG_FORMATS:
+            keep.append(f)
+    for f in skipped:
+        print(f"Skipping unreadable video: {f.name}")
+    for f in keep:
+        (Path(tmp) / f.name).symlink_to(f.resolve())
+    return tmp
+
 def main():
     args = parse_args()
-    
+
     #CHANGED: Added automatic cleanup of hardcoded training pathways from metadata
     try:
         ckpt = torch.load(args.model, map_location="cpu")
@@ -62,15 +88,16 @@ def main():
     print(f"Loading weights from: {args.model}")
     model = YOLO(args.model)
     
-    results = model.predict(
-        source=args.source,
-        conf=args.conf,
-        iou=0.45,
-        save=True,
-        project=Path(args.output).parent,
-        name=Path(args.output).name,
-        exist_ok=True
-    )
+    with tempfile.TemporaryDirectory() as tmp:
+        results = model.predict(
+            source=usable_sources(args.source, tmp),
+            conf=args.conf,
+            iou=0.45,
+            save=True,
+            project=Path(args.output).parent,
+            name=Path(args.output).name,
+            exist_ok=True
+        )
     
     print("\n--- Detection Summary ---")
     detected_count = 0
