@@ -28,6 +28,7 @@ Usage:
 import argparse
 import csv
 import json
+import re
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -126,6 +127,12 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--hamming", type=int, default=6)
     ap.add_argument("--crop-norm", type=int, default=64)
+    ap.add_argument("--one-per-stem", action="store_true",
+                    help="Roboflow exports augmented copies of each source image as "
+                         "<stem>.rf.<hash>.<ext> -- measured at 5.5x on this pool "
+                         "(133,333 files from 24,034 sources). Keep one file per "
+                         "stem: augmented siblings say nothing about real-vs-render "
+                         "and would inflate every cluster.")
     args = ap.parse_args()
 
     pool, out = Path(args.pool), Path(args.out)
@@ -133,10 +140,22 @@ def main():
 
     rows = []
     crop_hashes, crop_owner = [], []
+    stem_re = re.compile(r"\.rf\.[0-9a-f]+$", re.I)
     for ds in sorted(p for p in pool.iterdir() if p.is_dir()):
         src = ds.name
         imgs = [p for p in sorted(ds.rglob("*")) if p.suffix.lower() in IMG_EXT]
-        print(f"{src}: {len(imgs):,} images", flush=True)
+        n_all = len(imgs)
+        if args.one_per_stem:
+            keep, seen_stem = [], set()
+            for p in imgs:
+                s = stem_re.sub("", p.stem)
+                if s not in seen_stem:
+                    seen_stem.add(s)
+                    keep.append(p)
+            imgs = keep
+        print(f"{src}: {len(imgs):,} images"
+              + (f"  (of {n_all:,} files, {n_all/max(len(imgs),1):.1f}x augmented)"
+                 if args.one_per_stem else ""), flush=True)
         for ip in imgs:
             try:
                 with Image.open(ip) as im:
