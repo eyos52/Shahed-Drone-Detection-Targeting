@@ -1,0 +1,49 @@
+{
+  "_comment": [
+    "Maps each source dataset's own class indices onto our taxonomy.",
+    "Indices are positions in that dataset's data.yaml 'names' list.",
+    "Targets: shahed | bird | helicopter | other | drop.",
+    "",
+    "'drop' marks a whole dataset that is not Shahed data at all. These were",
+    "pulled in by a text search on the Roboflow project name and would",
+    "otherwise poison the pool -- sinakhoshgoftar is 2,473 crowd photographs",
+    "whose only class is 'person' (the OWNER is named Shahed), and",
+    "roopa-khilare labels the interceptor drone, not the target it intercepts.",
+    "",
+    "Datasets whose classes are unnamed ('0'/'1') are kept only where the",
+    "content has been visually confirmed; all three such datasets here were",
+    "confirmed to be renders, so their boxes are shahed-class but synthetic."
+  ],
+
+  "sinakhoshgoftar__shahed-cnnak":            {"_all": "drop", "_why": "class is 'person'; crowd photos"},
+  "roopa-khilare__shahed-136_intercepter":    {"_all": "drop", "_why": "class is 'intercepter', not the target"},
+  "shahed-5lbsm__shahed-qctjy":               {"_all": "drop", "_why": "classes 'copter','drone'; generic UAS"},
+
+  "-yny2l__shahed-detection-psrrr":           {"0": "bird", "1": "shahed"},
+  "e-yjnj4__shahed-y4fsd":                    {"0": "bird", "1": "other", "2": "shahed"},
+  "myws-tckfd__shahed-136-bvs8o":             {"0": "other", "1": "shahed", "2": "bird", "3": "helicopter"},
+  "vasya-samboruk__shahed-v0-1":              {"0": "bird", "1": "shahed"},
+  "polina-verzun-lliid__shahed":              {"0": "other", "1": "shahed"},
+
+  "aashus-workspace__shahed-e7nbm":           {"0": "shahed"},
+  "aircraft-ol8hx__shahed-136-ohjzr":         {"0": "shahed"},
+  "ammars-workspace-rrn02__shahed-2-dfj29":   {"0": "shahed"},
+  "anas-aouadi-28tuc__shahed-131-136":        {"0": "shahed"},
+  "ankits-workspace-qevrs__shahed-136-ff8vc": {"0": "shahed"},
+  "bbokyeong__shahed-136-chbsm":              {"0": "shahed"},
+  "datashahed__shahed-9j3nn":                 {"0": "shahed"},
+  "drone-jt2ap__shahed-136-drone_new":        {"0": "shahed"},
+  "incheol__shahed-136-zgpwm":                {"0": "shahed"},
+  "inevitables-workspace__shahed-136-wgpku":  {"0": "shahed"},
+  "inevitables-workspace__shahed-137-2":      {"0": "shahed"},
+  "mariam-aljaberi__target-detection-shahed": {"0": "shahed"},
+  "myats-workspace-15deb__shahed-fix":        {"0": "shahed"},
+  "robot-zftp2__shahed-rgmop":                {"0": "shahed"},
+  "rodion-shishkin-tb3cu__shahed-136":        {"0": "shahed"},
+  "rodion-shishkin-tb3cu__shahed-136_youtube_batch2": {"0": "shahed"},
+  "shyams-workspace-37pky__shahed-136-rpndg": {"0": "shahed"},
+
+  "e-mjkdo__shahed-finder":                   {"0": "shahed", "1": "shahed", "_why": "unnamed class; visually confirmed CAD render"},
+  "horus-al939__shahed-136-m2zkt":            {"0": "shahed", "1": "shahed", "_why": "unnamed class; visually confirmed render"},
+  "smziaworkspace__shahed-uav-721k0":         {"0": "shahed", "_why": "unnamed class; visually confirmed desert-road sim"}
+}

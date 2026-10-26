@@ -34,6 +34,7 @@ Dependencies: Pillow + numpy only.
 import argparse
 import csv
 import glob
+import json
 import math
 from pathlib import Path
 
@@ -115,12 +116,57 @@ def main():
     ap.add_argument("--cell", type=int, default=160)
     ap.add_argument("--cand-sheets", type=int, default=0, help="0 = all")
     ap.add_argument("--reject-sheets", type=int, default=100)
+    ap.add_argument("--class-map", required=True,
+                    help="class_map.json -- WITHOUT this the pool contains "
+                         "datasets that matched a name search but label "
+                         "'person', 'intercepter' or generic drones, and they "
+                         "score HIGHEST because busy real backgrounds raise "
+                         "bg_edge_den")
     args = ap.parse_args()
+
+    cmap = json.loads(Path(args.class_map).read_text())
+    dropped = {k for k, v in cmap.items()
+               if isinstance(v, dict) and v.get("_all") == "drop"}
+
+    def shahed_idxs(source):
+        v = cmap.get(source)
+        if not isinstance(v, dict):
+            return None                      # unmapped -> treat as unknown
+        return {int(k) for k, t in v.items() if k.isdigit() and t == "shahed"}
+
+    def has_shahed_box(pool, rel, source):
+        idxs = shahed_idxs(source)
+        if not idxs:
+            return False
+        parts = list(Path(rel).parts)
+        if "images" not in parts:
+            return False
+        i = len(parts) - 1 - parts[::-1].index("images")
+        lp = Path(pool, *parts[:i], "labels", *parts[i + 1:]).with_suffix(".txt")
+        if not lp.exists():
+            return False
+        for line in lp.read_text(errors="replace").splitlines():
+            p = line.split()
+            if p:
+                try:
+                    if int(float(p[0])) in idxs:
+                        return True
+                except ValueError:
+                    pass
+        return False
 
     rows = []
     for f in sorted(glob.glob(str(Path(args.scores) / "features_*.csv"))):
         rows += [r for r in csv.DictReader(open(f)) if not r.get("err")]
     print("loaded %d scored images" % len(rows))
+
+    n0 = len(rows)
+    rows = [r for r in rows if r["source"] not in dropped]
+    print("  dropped %d images from non-Shahed datasets (%s)"
+          % (n0 - len(rows), ", ".join(sorted(dropped))))
+    n1 = len(rows)
+    rows = [r for r in rows if has_shahed_box(args.pool, r["path"], r["source"])]
+    print("  kept %d of %d with at least one shahed-class box" % (len(rows), n1))
 
     bge = pct_ranks([fnum(r, "bg_edge_den") for r in rows])
     blk = pct_ranks([fnum(r, "blockiness") for r in rows])
