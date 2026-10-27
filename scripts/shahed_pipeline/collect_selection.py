@@ -29,8 +29,12 @@ import csv
 import json
 import re
 import shutil
+import sys
 from collections import Counter, OrderedDict
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from labels import parse_file
 
 # shared label space for the assembled dataset
 TAXONOMY = ["shahed", "bird", "helicopter", "other"]
@@ -109,19 +113,16 @@ def main():
             lines = []
             if lp and lp.exists():
                 m = cmap.get(src, {})
-                for line in lp.read_text(errors="replace").splitlines():
-                    p = line.split()
-                    if len(p) < 5:
-                        continue
-                    try:
-                        idx = int(float(p[0]))
-                    except ValueError:
-                        continue
+                # parse_file normalises boxes AND segmentation polygons; ten of
+                # the pooled datasets ship polygons, which read as a sliver box
+                # at the left edge if you just slice the first four numbers
+                for idx, cx, cy, w, h in parse_file(lp):
                     target = m.get(str(idx))
                     if target in TAXONOMY:
                         new_idx = TAXONOMY.index(target)
                         cls_count[target] += 1
-                        lines.append(" ".join([str(new_idx)] + p[1:5]))
+                        lines.append("%d %.6f %.6f %.6f %.6f"
+                                     % (new_idx, cx, cy, w, h))
                     else:
                         unmapped["%s:%d" % (src, idx)] += 1
             else:

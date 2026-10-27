@@ -47,6 +47,10 @@ import csv
 import math
 from pathlib import Path
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from labels import parse_file
+
 import numpy as np
 from PIL import Image
 
@@ -89,18 +93,13 @@ def blockiness(g):
 
 
 def boxes_of(label_path):
-    out = []
+    """(cx, cy, w, h) per annotation. Goes through labels.parse_file so that
+    the ten polygon-exporting datasets are measured on their true extent --
+    slicing p[1:5] off a polygon gives a sliver and corrupts every size
+    statistic downstream, including the review size band."""
     if label_path is None or not label_path.exists():
-        return out
-    for line in label_path.read_text(errors="replace").splitlines():
-        p = line.split()
-        if len(p) < 5:
-            continue
-        try:
-            out.append(tuple(float(v) for v in p[1:5]))
-        except ValueError:
-            pass
-    return out
+        return []
+    return [(cx, cy, w, h) for _c, cx, cy, w, h in parse_file(label_path)]
 
 
 def label_for(ip):
