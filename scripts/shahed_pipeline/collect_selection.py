@@ -40,16 +40,36 @@ from labels import parse_file
 TAXONOMY = ["shahed", "bird", "helicopter", "other"]
 
 
+# one cell, or an inclusive range: "41" or "63-78"
+_ITEM = r"\d+(?:\s*-\s*\d+)?"
+_SEL = re.compile(r"(\d+)\s*:\s*(" + _ITEM + r"(?:\s*,\s*" + _ITEM + r")*)")
+
+
 def parse_selection(s):
-    """'22:21,39,66,67; 29:38,83' -> {22: [21,39,66,67], 29: [38,83]}.
-    Tolerates missing separators between groups and stray whitespace."""
+    """'22:21,39; 29:38,63-66' -> {22: [21,39], 29: [38,63,64,65,66]}.
+
+    Ranges are inclusive on both ends, which is how a human reading a contact
+    sheet means "63-78". Tolerates missing separators between groups, stray
+    whitespace and a trailing comma.
+    """
     out = OrderedDict()
     # cells must be comma-separated, so a bare space before the next "NN:"
     # ends the list instead of swallowing that sheet number as a cell --
     # "82:3,73,96,99 83:3,24" has to yield sheet 83, not cell 83 of sheet 82
-    for m in re.finditer(r"(\d+)\s*:\s*(\d+(?:\s*,\s*\d+)*)", s):
+    for m in _SEL.finditer(s):
         sheet = int(m.group(1))
-        cells = [int(c) for c in re.findall(r"\d+", m.group(2))]
+        cells = []
+        for item in m.group(2).split(","):
+            item = item.strip()
+            if not item:
+                continue
+            if "-" in item:
+                a, b = (int(v) for v in item.split("-"))
+                if b < a:
+                    a, b = b, a
+                cells.extend(range(a, b + 1))
+            else:
+                cells.append(int(item))
         out.setdefault(sheet, [])
         out[sheet].extend(cells)
     return out
