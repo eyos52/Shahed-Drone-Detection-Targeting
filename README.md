@@ -26,4 +26,4 @@ In VS Code, open the project folder and use **Terminal > Run Task**:
 - `Dashboard: validate files` checks the dashboard JavaScript and inference script.
 
 To run the trained YOLOv8 model and produce dashboard-ready JSON, see
-`DASHBOARD_DEPLOYMENT.md`.
+`docs/DASHBOARD_DEPLOYMENT.md`.

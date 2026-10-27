@@ -10,3 +10,4 @@ runs/
 # Local handoff archives.
 *.zip
 *.avi
+.DS_Store

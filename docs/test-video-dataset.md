@@ -19,7 +19,7 @@ Last updated: 2026-09-22
 | **Test data** | **Video only.** Still-image metrics do not measure what this model is for |
 | **Base model** | TIDL YOLOv5-lite → ONNX export for TI Edge AI Studio / TIDL compilation |
 
-> Note: `Dataset_Overview.html` in the repo root describes a *different* combined dataset
+> Note: `docs/Dataset_Overview.html` describes a *different* combined dataset
 > (10,031 images, 4 sources, heavily synthetic). That notebook does not reflect the current
 > plan. Do not use its composition numbers.
 
