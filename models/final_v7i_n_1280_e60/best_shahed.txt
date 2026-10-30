@@ -1,0 +1,1 @@
+epoch 50: shahed P 0.979 R 0.837 mAP50 0.844 mAP50-95 0.682
