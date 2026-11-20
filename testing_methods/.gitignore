@@ -1,0 +1,7 @@
+# media is never committed -- regenerate from manifests/candidates.csv
+*.mp4
+*.webm
+*.mkv
+*.jpg
+*.png
+__pycache__/
